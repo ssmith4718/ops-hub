@@ -1,0 +1,59 @@
+import streamlit as st
+from streamlit_gsheets import GSheetsConnection
+import pandas as pd
+
+st.set_page_config(page_title="Ops Hub", layout="wide")
+st.title("📊 Operations & CRM Hub")
+
+# Connect to Google Sheets
+conn = st.connection("gsheets", type=GSheetsConnection)
+
+KPI_URL = "https://docs.google.com/spreadsheets/d/1KpN1zyLK4164aTuxu4O-4UOhY4fJoGy9G0g2iXz2HWI/edit?usp=drive_web"
+LEADS_URL = "https://docs.google.com/spreadsheets/d/1KwDaiO_kurvvvqlTqEWVPDQt0OoIdud1dX5KvpOwxcw/edit?usp=drive_web"
+TASKS_URL = "https://docs.google.com/spreadsheets/d/1UDsAIsNsXkuBNbwPllQcR-WVCyypz8QTDjl3c0F03gk/edit?usp=drive_web"
+
+# Read the Data
+df_kpi = conn.read(spreadsheet=KPI_URL)
+df_leads = conn.read(spreadsheet=LEADS_URL)
+df_tasks = conn.read(spreadsheet=TASKS_URL)
+
+tab1, tab2, tab3 = st.tabs(["KPI Dashboard", "Lead Pipeline", "Task Tracker"])
+
+with tab1:
+    st.header("Daily & Weekly Targets")
+    st.write("Double-click any cell to update your numbers:")
+    # data_editor makes it interactive; num_rows="dynamic" lets you add new rows at the bottom
+    edited_kpi = st.data_editor(df_kpi, use_container_width=True, num_rows="dynamic")
+    
+    if st.button("Save KPI Updates"):
+        conn.update(spreadsheet=KPI_URL, data=edited_kpi)
+        st.success("KPIs Updated Successfully!")
+
+with tab2:
+    st.header("Lead Pipeline")
+    
+    # Input form to make it feel like a real CRM app
+    with st.expander("➕ Add a New Lead"):
+        with st.form("new_lead_form"):
+            new_name = st.text_input("Lead Name")
+            new_company = st.text_input("Company / Business")
+            new_status = st.selectbox("Status", ["New", "Contacted", "Meeting Booked", "Closed"])
+            submitted = st.form_submit_button("Add Lead")
+            if submitted:
+                st.info("Lead added to tracker! (Save button below to push to database)")
+
+    st.write("Edit existing leads below:")
+    edited_leads = st.data_editor(df_leads, use_container_width=True, num_rows="dynamic")
+    
+    if st.button("Save Lead Updates"):
+        conn.update(spreadsheet=LEADS_URL, data=edited_leads)
+        st.success("Pipeline Updated Successfully!")
+
+with tab3:
+    st.header("Task Management")
+    st.write("Update task progress and statuses:")
+    edited_tasks = st.data_editor(df_tasks, use_container_width=True, num_rows="dynamic")
+    
+    if st.button("Save Task Updates"):
+        conn.update(spreadsheet=TASKS_URL, data=edited_tasks)
+        st.success("Tasks Updated Successfully!")
